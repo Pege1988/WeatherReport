@@ -93,12 +93,13 @@ conf_file = "confidential.txt"
 
 conf_path = os.path.join(mainPath, conf_file)
 
+# Add items from confidential file to list
 confidential = []
 with open(conf_path) as f:
     for line in f:
         confidential.append(line.replace("\n",""))
 
-# Recipients
+# E-Mail recipient(s)
 PJ = confidential[2]
 
 '''-------------------------------------------------------------------------------------------
@@ -143,28 +144,32 @@ reportPeriodName=currentmonthname+" "+currentyearstr
 
 # Monthly meteorological parameters - Luxembourg/Findel Airport (WMO ID 06590)
 # https://data.public.lu/fr/datasets/monthly-meteorological-parameters-luxembourg-findel-airport-wmo-id-06590/
+'''
+MYT (°C): MONTHLY MEAN AIR TEMPERATURE AT 2 M
+MRR06_06 (mm): MONTHLY AMOUNT OF PRECIPITATION
+MINS (h): MONTHLY SUNSHINE DURATION BY OBSERVER
+MYP (hPa): MONTHLY MEAN ATMOSPHERIC PRESSURE AT FIELD / AERODROME ELEVATION (QFE)
+MYPSL (hPa): MONTHLY MEAN ATMOSPHERIC PRESSURE REDUCED TO MEAN SEA LEVEL (QFF)'''
+
 mmp="https://data.public.lu/fr/datasets/r/b096cafb-02bb-46d0-9fc0-5f63f0cbad98"
 
 mmp_df = pd.read_fwf(mmp, encoding='latin-1')
 
+# Columns needed to be renamed because wrongly split in source file
 mmp_df['MYT (°C)']=mmp_df['(°C)']
 mmp_df['MMR06_06 (mm)']=mmp_df['(mm)']
 mmp_df['MINS (h)']=mmp_df['MINS (h)']
-mmp_df['MYP (hPa)']=mmp_df['(hPa)']
-mmp_df['MYPSL (hPa)']=mmp_df['(hPa).1']
-mmp_df = mmp_df[['Year', 'Month','MYT (°C)','MMR06_06 (mm)','MINS (h)','MYP (hPa)','MYPSL (hPa)']]
-#print(mmp_df)
+mmp_df = mmp_df[['Year', 'Month','MYT (°C)','MMR06_06 (mm)','MINS (h)']]
 
 # Daily meteorological parameters - Luxembourg/Findel Airport (WMO ID 06590)
 # https://data.public.lu/fr/datasets/daily-meteorological-parameters-luxembourg-findel-airport-wmo-id-06590/
 dmp = "https://data.public.lu/fr/datasets/r/a67bd8c0-b036-4761-b161-bdab272302e5"
 
 dmp_df = pd.read_csv(dmp, encoding = 'ISO-8859-1')
-dmp_df['Day'] = dmp_df['DATE'].str[0:2]
-dmp_df['Month'] = dmp_df['DATE'].str[3:5]
-dmp_df['Year'] = dmp_df['DATE'].str[6:10]
-dmp_df = dmp_df[['Year', 'Month', 'Day','DXT (°C)', 'DNT (°C)', 'DRR06_06 (mm)']]
-# print(dmp_df)
+dmp_df['Day'] = dmp_df['DATE'].str[0:2].astype(int)
+dmp_df['Month'] = dmp_df['DATE'].str[3:5].astype(int)
+dmp_df['Year'] = dmp_df['DATE'].str[6:10].astype(int)
+dmp_df = dmp_df[['Year', 'Month', 'Day', 'DXT (°C)', 'DNT (°C)', 'DRR06_06 (mm)']]
 
 # Meteorological extreme parameters since 1947 - Luxembourg/Findel Airport (WMO ID 06590)
 # https://data.public.lu/fr/datasets/meteorological-extreme-parameters-since-1947-luxembourg-findel-airport-wmo-id-06590/
@@ -175,6 +180,8 @@ mep_df = pd.read_csv(mep, encoding = 'ISO-8859-1', sep = ';')
 mep_df_transposed = mep_df.T
 mep_df = pd.melt(mep_df, id_vars = 'MONTH', value_vars = ['JAN', 'FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC']) 
 
+print(mep_df_transposed)
+print(mep_df)
 
 
 print("3 - Dataframes created")
@@ -188,6 +195,14 @@ daily_temp_df = pd.read_sql_query("SELECT year, month, day, temp_min, temp_max, 
 daily_min_temp = daily_temp_df[(daily_temp_df['month'] == currentmonth) & (daily_temp_df['year'] == currentyear)]['temp_min']
 daily_max_temp = daily_temp_df[(daily_temp_df['month'] == currentmonth) & (daily_temp_df['year'] == currentyear)]['temp_max']
 daily_avg_temp = daily_temp_df[(daily_temp_df['month'] == currentmonth) & (daily_temp_df['year'] == currentyear)]['temp_avg']
+
+# Meteolux data
+
+ml_daily_avg_temp = mmp_df[(mmp_df['Month'] == currentmonth) & (mmp_df['Year'] == currentyear)]['MYT (°C)']
+
+# In case of multiple values, loop through series (WIP: make conditional on data type)
+for i in ml_daily_avg_temp:
+  ml_daily_avg_temp = i
 
 x = daily_temp_df[(daily_temp_df['month'] == currentmonth) & (daily_temp_df['year'] == currentyear)]['day']
 
@@ -219,15 +234,13 @@ firstPeriod = str(temp_df['yearMonth'].min())
 lastPeriod = str(temp_df['yearMonth'].max())
 
 # Temp extremes current reporting period
-min_temp_rp = str(round(int(temp_df[(temp_df['month'] == currentmonth) & (temp_df['year'] == currentyear)]['min_temp_m']),1))
-max_temp_rp = str(round(int(temp_df[(temp_df['month'] == currentmonth) & (temp_df['year'] == currentyear)]['max_temp_m']),1))
-avg_temp_rp = str(round(int(temp_df[(temp_df['month'] == currentmonth) & (temp_df['year'] == currentyear)]['avg_temp_m']),1))
-med_temp_rp = str(round(int(temp_df[(temp_df['month'] == currentmonth) & (temp_df['year'] == currentyear)]['med_temp_m']),1))
+min_temp_rp = str(round(float(temp_df[(temp_df['month'] == currentmonth) & (temp_df['year'] == currentyear)]['min_temp_m']),1))
+max_temp_rp = str(round(float(temp_df[(temp_df['month'] == currentmonth) & (temp_df['year'] == currentyear)]['max_temp_m']),1))
+avg_temp_rp = str(round(float(temp_df[(temp_df['month'] == currentmonth) & (temp_df['year'] == currentyear)]['avg_temp_m']),1))
 
 # Average temp extremes current reporting period month
 avg_min_temp_m = str(round(temp_df[temp_df['month'] == currentmonth]['min_temp_m'].mean(),1))
 avg_avg_temp_m = str(round(temp_df[temp_df['month'] == currentmonth]['avg_temp_m'].mean(),1))
-avg_med_temp_m = str(round(temp_df[temp_df['month'] == currentmonth]['med_temp_m'].mean(),1))
 avg_max_temp_m = str(round(temp_df[temp_df['month'] == currentmonth]['max_temp_m'].mean(),1))
 
 # Minimum temp extremes current reporting period month
@@ -248,6 +261,28 @@ min_avg_temp_m_year = str(int(temp_df.loc[min_avg_temp_m_row,['year']]))
 max_avg_temp_m = str(round(temp_df[temp_df['month'] == currentmonth]['avg_temp_m'].max(),1))
 max_avg_temp_m_row = temp_df[temp_df['month'] == currentmonth]['max_temp_m'].idxmax()
 max_avg_temp_m_year = str(int(temp_df.loc[max_avg_temp_m_row,['year']]))
+
+# Meteolux temp extremes current reporting period month
+ml_avg_min_temp_m = str(round(dmp_df[dmp_df['Month'] == currentmonth]['DNT (°C)'].mean(),1))
+ml_avg_avg_temp_m = str(round(mmp_df[mmp_df['Month'] == currentmonth]['MYT (°C)'].mean(),1))
+ml_avg_max_temp_m = str(round(dmp_df[dmp_df['Month'] == currentmonth]['DXT (°C)'].mean(),1))
+
+ml_min_temp_m = str(round(float(dmp_df[dmp_df['Month'] == currentmonth]['DNT (°C)'].min()),1))
+ml_min_temp_m_row = dmp_df[dmp_df['Month'] == currentmonth]['DNT (°C)'].idxmin()
+ml_min_temp_m_year = str(int(dmp_df.loc[ml_min_temp_m_row,['Year']]))
+
+ml_max_temp_m = str(round(float(dmp_df[dmp_df['Month'] == currentmonth]['DXT (°C)'].max()),1))
+ml_max_temp_m_row = dmp_df[dmp_df['Month'] == currentmonth]['DXT (°C)'].idxmax()
+ml_max_temp_m_year = str(int(dmp_df.loc[ml_max_temp_m_row,['Year']]))
+
+ml_min_avg_temp_m = str(round(float(mmp_df[mmp_df['Month'] == currentmonth]['MYT (°C)'].min()),1))
+ml_min_avg_temp_m_row = mmp_df[mmp_df['Month'] == currentmonth]['MYT (°C)'].idxmin()
+ml_min_avg_temp_m_year = str(int(mmp_df.loc[ml_min_avg_temp_m_row,['Year']]))
+
+ml_max_avg_temp_m = str(round(float(mmp_df[mmp_df['Month'] == currentmonth]['MYT (°C)'].max()),1))
+ml_max_avg_temp_m_row = mmp_df[mmp_df['Month'] == currentmonth]['MYT (°C)'].idxmax()
+ml_max_avg_temp_m_year = str(int(mmp_df.loc[ml_max_avg_temp_m_row,['Year']]))
+
 
 # Preparation of temperature stats HTML table
 Temp_Table = """      
@@ -271,15 +306,6 @@ Temp_Table = """
             <td>"""+avg_min_temp_m+"""</td>
             <td>"""+min_temp_m+"""</td>
             <td>"""+min_temp_m_year+"""</td>
-            <td>-</td>
-            <td>-</td>
-          </tr>
-          <tr>
-            <td class="headerColumn">Mediane</td>
-            <td>"""+med_temp_rp+"""</td>
-            <td>"""+avg_med_temp_m+"""</td>
-            <td>-</td>
-            <td>-</td>
             <td>-</td>
             <td>-</td>
           </tr>
@@ -505,211 +531,16 @@ Sun_Table = """      <table>
 reportName="Wieder Rapport Kautebaach"
 reportFileName="Wieder Rapport "+reportPeriod+".html"
 
-css = """body {
-			  background-repeat: no-repeat;
-			  background-attachment: fixed;
-			} 
+f = open('Templates/css.txt', 'r')
 
-			table, th, td {
-			  border: 1px solid;
-			  border-collapse: collapse;
-			  border-color: white;
-			  padding: 15px;
-			  font-family:verdana;
-			  margin-left: auto;
-			  margin-right: auto;
-				font-size:0.8em;
-			}
-
-			.container {
-				min-height: 100%;
-				background-color:#001E34;
-				padding: 10px;
-        color: white;
-			  font-family:verdana;
-			}
-
-			.titleBar {
-				padding: 0px;
-				border-radius: 3px;
-        margin-bottom: 10px;
-				margin: 10px;
-			}
-
-			.titleFont {
-        font-size: 2em;
-        color: white;
-				font-family:verdana;
-				text-align:center;
-			}
-
-      .titleSub {
-        font-size: 1em;
-        color: white;
-				font-family:verdana;
-				text-align:center;
-      }
-
-			.station {
-				background-color:#005F88;
-				padding: 0px;
-				border-radius: 3px;
-			}
-			.disclaimer {
-				padding: 1px;
-				border: 2px solid white;
-				margin: 5px;
-				border-radius: 3px;
-			}
-
-      .disclaimerTitle {
-        font-size:0.8 em;
-				font-family:verdana;
-        text-decoration: underline;
-      }
-
-      .disclaimerContent {
-        font-size:0.8 em; 
-				font-family:verdana;       
-      }
-
-			.chapterHeader {
-				background-color:#005F88;
-				padding: 1px;
-				padding-bottom: 7px;
-				padding-top: 7px;
-				border-radius: 3px;
-        margin-bottom: 10px;
-				color: white;
-				text-align:center;
-				font-family:verdana;
-				font-size:1.2em;
-		    font-weight: bold;
-			}
-			
-			.chapterContainer {
-				padding: 5px;
-        overflow: auto;
-        margin-bottom: 10px;
-			}
-			
-			.tile {
-				background-color:#004162;
-				padding: 0px;
-				margin: 5px;
-				border-radius: 2px;
-        float: center;
-			}
-			
-			.tileTitle {
-				background-color:#003F5F;
-				padding-left: 5px;
-				padding-bottom: 15px;
-				padding-top: 15px;
-				border-bottom: 1px solid #003856;
-				border-radius: 2px;
-        font-size: 1em;
-		    font-weight: bold;
-			}
-
-      .tileContent {
-        overflow: hidden;
-				padding-bottom: 15px;
-				padding-top: 15px;
-      }
-      
-			.tileMainFont {
-        font-size: 1em;
-				text-align:center;
-        
-      }
-
-      .tileLeftSub {
-        width: 50%; 
-        float: left;
-        font-size: 1em;
-      }
-
-      .tileRightSub {
-        width: 50%; 
-        float: right;
-        font-size: 1em;
-      }
-
-			tr {
-			  border-bottom: 1px solid #ddd;
-			}
-
-			img {
-			  display: block;
-			  margin-left: auto;
-			  margin-right: auto;
-			  max-width: 100%;
-			  height: auto;
-			}
-
-			hr {
-				color:#2E75B6;
-				background-color:#2E75B6;
-			}
-      
-
-			.greenArrow {
-				color: green;
-				font-family: verdana;
-				font-size: 0.75em;
-				font-style: bold;
-				text-align: center;
-        width: 25%;
-        float: left;
-			}
-			
-			.redArrow {
-				color: red;
-				font-family:verdana;
-				font-size:0.75m;
-				font-style: bold;
-				text-align:center;
-        width: 25%;
-        float: left;
-			}
-			
-      .italic {
-        font-style: italic;
-      }
-			.extremeValue{
-				font-size:0.75em;
-        width: 75%;
-        float: right;
-			}
-
-			.headerColumn {
-				text-align: left;
-				font-weight: bold;
-			}
-
-			td {
-				text-align: center;
-			}
-
-			tr:nth-child(even) {background-color: #004F76;}
-
-			th {
-			  background-color: #003F5F;
-			  color: white;
-			}
-			tr {
-			  color: white;
-			}
-
-			tr:hover {background-color: #004162;}"""
+css = f.read()
 
 html = """\
 <html>
   <head>
       <title>"""+reportName+" "+reportPeriodName+"""</title>
       <style>
-          """+css+"""
+            """+css+"""
       </style>
   </head>
   <body>
