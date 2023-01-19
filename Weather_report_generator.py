@@ -1,5 +1,5 @@
 '''HTML weather report creator using PEGE_DB sqlite database'''
-'''Version 0.2'''
+'''Version 0.2.1'''
 #Modules
 import sqlite3
 import datetime
