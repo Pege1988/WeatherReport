@@ -1,0 +1,43 @@
+"""      
+<table>
+          <tr>
+            <th rowspan="2">Wäert</th>
+            <th rowspan="2">"""+{reportPeriod}+"""</th>
+            <th rowspan="2">Moyenne</th>
+            <th colspan="2">Déifstwäert</th>
+            <th colspan="2">Hëchstwäert</th>
+          </tr>
+          <tr>
+            <th>Wäert</th>
+            <th>Joer
+            <th>Wäert</th>
+            <th>Joer</th>
+          </tr>          
+          <tr>
+            <td class="headerColumn">Minimum</td>
+            <td>"""+{min_temp_rp}+"""</td>
+            <td>"""+{avg_min_temp_m}+"""</td>
+            <td>"""+{min_temp_m}+"""</td>
+            <td>"""+{min_temp_m_year}+"""</td>
+            <td>-</td>
+            <td>-</td>
+          </tr>
+          <tr>
+            <td class="headerColumn">Moyenne</td>
+            <td>"""+{avg_temp_rp}+"""</td>
+            <td>"""+{avg_avg_temp_m}+"""</td>
+            <td>"""+{min_avg_temp_m}+"""</td>
+            <td>"""+{min_avg_temp_m_year}+"""</td>
+            <td>"""+{max_avg_temp_m}+"""</td>
+            <td>"""+{max_avg_temp_m_year}+"""</td>
+          </tr>
+          <tr>
+            <td class="headerColumn">Maximum</td>
+            <td>"""+{max_temp_rp}+"""</td>
+            <td>"""+{avg_max_temp_m}+"""</td>
+            <td>-</td>
+            <td>-</td>
+            <td>"""+{max_temp_m}+"""</td>
+            <td>"""+{max_temp_m_year}+"""</td>
+          </tr>
+      </table>"""
