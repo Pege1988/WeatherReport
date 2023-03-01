@@ -1,60 +1,81 @@
 '''HTML weather report creator using PEGE_DB sqlite database'''
-'''Version 0.3.0'''
+'''Version 0.3.1'''
 #Modules
-import sqlite3
-import datetime
+import base64
 import calendar
-from datetime import date
-import pandas as pd
-from urllib.request import urlopen
+import datetime
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+import io
+import logging
+from math import isnan
 import matplotlib.pyplot as plt
 from matplotlib.ticker import PercentFormatter
 import numpy as np
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-import smtplib
-import io
-import base64
-from math import isnan
 import os
+import pandas as pd
+import smtplib
+import sqlite3
+from urllib.request import urlopen
+
+#==============================================================
+#   TOC
+#==============================================================
 
 
-
-'''-------------------------------------------------------------------------------------------
---------------------------- Table of contents ----------------------------------------------
-----------------------------------------------------------------------------------------------
-
-   0 - Script filters
-
-   1 - Define Report Period
-   
-   2 - Connect to DB
-   
-   3 - Prepare Dataframe
-   
-   4 - Extract temperatures data
-
--------------------------------------------------------------------------------------------'''
-
-'''-------------------------------------------------------------------------------------------
-------------------------------- 0 - Script filters -------------------------------------------
--------------------------------------------------------------------------------------------'''
+#==============================================================
+#   PARAMETERS
+#==============================================================
 
 # Indicate if local run or on synology NAS
 synology = True
-
 automatic_report = 1 # If 1 automatic report dates, if 0 manual report dates
 manual_year = 2019 # Integer between 2019-202x
 manual_month = 9 # Integer between 1-12
 
-'''-------------------------------------------------------------------------------------------
-------------------------- 1 - Define Report Period -------------------------------------------
--------------------------------------------------------------------------------------------'''
-# Returns the current local date
+# Paths
+if synology == True:
+    mainPath = "/volume1/python_scripts/WeatherReport"
+    pdbPath = "/volume1/homes/Pege_admin/Python_scripts"
+else:
+    mainPath = r"C:\Users\neo_1\Dropbox\Projects\Programing\WeatherReport"
+    pdbPath = r"C:\Users\neo_1\Dropbox\Projects\Programing"
+
+# Files
+pfws = 'pege_froggit_weather_stats.sqlite'
+pdb = 'pege_db.sqlite'
+conf_file = "confidential.txt"
+
+# URLs
+mmp = "https://data.public.lu/fr/datasets/r/b096cafb-02bb-46d0-9fc0-5f63f0cbad98"
+dmp = "https://data.public.lu/fr/datasets/r/a67bd8c0-b036-4761-b161-bdab272302e5"
+mep = "https://data.public.lu/fr/datasets/r/daf945e9-58e9-4fea-9c1a-9b933d6c8b5e"
+
+#Filepaths
+reportPath = os.path.join(mainPath,'Reports/')
+dataPath = os.path.join(mainPath, 'Data')
+dataFilepath = os.path.join(dataPath, pfws)
+pdbFilepath = os.path.join(pdbPath, pdb)
+conf_path = os.path.join(mainPath, conf_file)
+log_file_path = os.path.join(mainPath, 'log/main.log')
+templateFilepath = os.path.join(mainPath, 'Templates/css.txt')
+
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+fhandler = logging.FileHandler(filename = log_file_path, mode = 'a')
+formatter = logging.Formatter('%(asctime)s.%(msecs)03d [%(levelname)s] %(message)s', '%d-%m-%Y %H:%M:%S')
+fhandler.setFormatter(formatter)
+logger.addHandler(fhandler)
+
+logging.getLogger('matplotlib.font_manager').disabled = True
+logging.debug('Start of program')
+
+#==============================================================
+#   DATES
+#==============================================================
+
 today = datetime.date.today()
-# Get first day of current month
 first = today.replace(day=1)
-# Substract one day to get to last day of previous month
 prevEOM = first - datetime.timedelta(days=1)
 
 if automatic_report == 1:
@@ -66,57 +87,15 @@ elif automatic_report == 0:
 else:
     print("Reporting period not correctly chosen!")
     exit()
-
-print("1 - Report period defined")
-
-'''-------------------------------------------------------------------------------------------
-------------------------- 2 - Connect to DB --------------------------------------------------
--------------------------------------------------------------------------------------------'''
-if synology == True:
-    mainPath = "/volume1/python_scripts/WeatherReport"
-    dataPath = "/volume1/python_scripts/WeatherReport/Data"
-else:
-    mainPath = r"C:\Users\neo_1\Dropbox\Projects\Programing\WeatherReport"
-    dataPath = r"C:\Users\neo_1\Dropbox\Projects\Programing\WeatherReport\Data"
-    reportPath = r"C:\Users\neo_1\Dropbox\Projects\Programing\WeatherReport\Reports"
-
-DB='pege_froggit_weather_stats.sqlite'
-
-dataFilepath = os.path.join(dataPath, DB)
-
-try:
-    # Create connection to database
-    conn = sqlite3.connect(dataFilepath)
-    print("2 - Connection to DB "+DB+" successful")
-except:
-    print("Connection to DB "+DB+" failed")
-
-conf_file = "confidential.txt"
-
-conf_path = os.path.join(mainPath, conf_file)
-
-# Add items from confidential file to list
-confidential = []
-with open(conf_path) as f:
-    for line in f:
-        confidential.append(line.replace("\n",""))
-
-# E-Mail recipient(s)
-PJ = confidential[2]
-
-'''-------------------------------------------------------------------------------------------
-------------------------- 3 - Prepare Dataframes ----------------------------------------------
--------------------------------------------------------------------------------------------'''
-
-# Get number of days in current month
 days_in_month = calendar.monthrange(currentyear, currentmonth)[1]
 
-# Report period (add 0 to single digit months)
-if len(str(currentmonth))==1:
-    currentmonthstr="0"+str(currentmonth)
+if len(str(currentmonth)) == 1:
+    currentmonthstr = "0" + str(currentmonth)
 else:
-    currentmonthstr=str(currentmonth)
-currentyearstr=str(currentyear)
+    currentmonthstr = str(currentmonth)
+currentyearstr = str(currentyear)
+
+logging.debug('Current month and year:' + currentyearstr + "-" + currentmonthstr)
 
 Méint = {
   "01": "Januar",
@@ -135,72 +114,228 @@ Méint = {
 
 currentmonthname = Méint[currentmonthstr]
 
-reportPeriod=currentyearstr+"-"+currentmonthstr
-reportPeriodName=currentmonthname+" "+currentyearstr
+reportPeriod = currentyearstr + "-" + currentmonthstr
+reportPeriodName = currentmonthname + " " + currentyearstr
+
+#==============================================================
+#   DATABASE AND FILE CONNECTIONS
+#==============================================================
+
+try:
+    pfwsConn = sqlite3.connect(dataFilepath)
+    logging.info('Connection to DB ' + pfws + " successful")
+except:
+    logging.warning('Connection to DB ' + pfws + " failed")
+
+try:
+    pdbConn = sqlite3.connect(pdbFilepath)
+    logging.info('Connection to DB ' + pdb + " successful")
+except:
+    logging.warning('Connection to DB ' + pdb + " failed")
+
+# Add items from confidential file to list
+confidential = []
+with open(conf_path) as f:
+    for line in f:
+        confidential.append(line.replace("\n",""))
+
+#==============================================================
+#   FUNCTIONS
+#==============================================================
+
+def current_temp_df(var):
+  variable = temp_df[(temp_df['month'] == currentmonth) & (temp_df['year'] == currentyear)][var]
+  logging.info(var + ": ")
+  logging.info(str(variable))
+  return(variable)
 
 
-'''-------------------------------------------------------------------------------------------
-------------------- x - Prepare MeteoLux dataframes - WIP ----------------------------------------------
--------------------------------------------------------------------------------------------'''
+def month_temp_df(var):
+  variable = temp_df[temp_df['month'] == currentmonth][var]
+  logging.info(var + ": ")
+  logging.info(str(variable))
+  return(variable)
 
+def temp_tile(tile_title, avg, avg_year, min, min_year, max, max_year):
+  tile_content = """<div class="tile">
+      <div class="tileTitle">
+        """ + tile_title + """
+      </div>
+      <div class="tileContent">
+          <div class="tileMainFont"> """ + avg + """ °C""" + avg_year + """
+          </div>
+          <div class="tileLeftSub">
+              <div class="redArrow">&#8711;</div>
+              <div class="extremeValue"> """ + min + """ °C""" + min_year + """</div>
+          </div>
+          <div class="tileRightSub">
+              <div class="greenArrow">&#8710;</div>
+              <div class="extremeValue">  """ + max + """ °C""" + max_year + """</div>
+          </div>
+      </div>
+  </div>"""
+  return(tile_content)
 
-# Monthly meteorological parameters - Luxembourg/Findel Airport (WMO ID 06590)
-# https://data.public.lu/fr/datasets/monthly-meteorological-parameters-luxembourg-findel-airport-wmo-id-06590/
-'''
-MYT (°C): MONTHLY MEAN AIR TEMPERATURE AT 2 M
-MMR06_06 (mm): MONTHLY AMOUNT OF PRECIPITATION
-MINS (h): MONTHLY SUNSHINE DURATION BY OBSERVER
-MYP (hPa): MONTHLY MEAN ATMOSPHERIC PRESSURE AT FIELD / AERODROME ELEVATION (QFE)
-MYPSL (hPa): MONTHLY MEAN ATMOSPHERIC PRESSURE REDUCED TO MEAN SEA LEVEL (QFF)'''
+def current_rain_df(var):
+  variable = rain_df[(rain_df['month'] == currentmonth) & (rain_df['year'] == currentyear)][var]
+  logging.info(var + ": ")
+  logging.info(str(variable))
+  return(variable)
 
-mmp="https://data.public.lu/fr/datasets/r/b096cafb-02bb-46d0-9fc0-5f63f0cbad98"
+def month_rain_df(var):
+  variable = rain_df[rain_df['month'] == currentmonth][var]
+  logging.info(var + ": ")
+  logging.info(str(variable))
+  return(variable)
 
+def rain_tile(tile_title, var, avg, avg_year, min, min_year, max, max_year):
+  tile_content = """
+				<div class="tile">
+					<div class="tileTitle">
+					  """ + tile_title + """
+					</div>
+                    <div class="tileContent">
+                        <div class="tileMainFont"> """ + avg + var + avg_year + """
+                        </div>
+                        <div class="tileLeftSub">
+                            <div class="redArrow">&#8711;</div>
+                            <div class="extremeValue"> """ + min + var + min_year + """</div>
+                        </div>
+                        <div class="tileRightSub">
+                            <div class="greenArrow">&#8710;</div>
+                            <div class="extremeValue">  """ + max + var + max_year + """</div>
+                        </div>
+                    </div>
+				</div>"""
+
+  
+  return(tile_content)
+
+def month_dmp_df(var):
+  variable = dmp_df[dmp_df['month'] == currentmonth][var]
+  logging.info(var + ": ")
+  logging.info(str(variable))
+  return(variable)
+
+def month_mmp_df(var):
+  variable = mmp_df[mmp_df['month'] == currentmonth][var]
+  logging.info(var + ": ")
+  logging.info(str(variable))
+  return(variable)
+
+def temp_days(columnName, luxName):
+  if int(current_temp_df(columnName)) != 0:
+    htmlName = """<div class="tileMainFont">""" + str(int(current_temp_df(columnName))) + """ """+luxName+"""</div>"""
+  else:
+    htmlName = """"""
+  return(htmlName)
+
+def current_sun_df(var):
+  variable = sun_df[(sun_df['month'] == currentmonth) & (sun_df['year'] == currentyear)][var]
+  logging.info(var + ": ")
+  logging.info(str(variable))
+  return(variable)
+
+def month_sun_df(var):
+  variable = sun_df[sun_df['month'] == currentmonth][var]
+  logging.info(var + ": ")
+  logging.info(str(variable))
+  return(variable)
+
+def sun_tile(tile_title, var, avg, avg_year, min, min_year, max, max_year):
+  tile_content = """
+				<div class="tile">
+					<div class="tileTitle">
+					  """ + tile_title + """
+					</div>
+                    <div class="tileContent">
+                        <div class="tileMainFont"> """ + avg + var + avg_year + """
+                        </div>
+                        <div class="tileLeftSub">
+                            <div class="redArrow">&#8711;</div>
+                            <div class="extremeValue"> """ + min + var + min_year + """</div>
+                        </div>
+                        <div class="tileRightSub">
+                            <div class="greenArrow">&#8710;</div>
+                            <div class="extremeValue">  """ + max + var + max_year + """</div>
+                        </div>
+                    </div>
+				</div>"""
+        
+  return(tile_content)
+
+def send_mail(receiver):
+    host = "smtp-mail.outlook.com"
+    port = 587
+    password = confidential[1]
+    sender = confidential[0]
+    email_conn = smtplib.SMTP(host,port)
+    email_conn.ehlo()
+    email_conn.starttls()
+    email_conn.login(sender, password)
+    the_msg = MIMEMultipart("alternative")
+    the_msg['Subject'] = reportName + " -Rapport "+reportPeriod # Subject
+    the_msg["From"] = sender
+    the_msg["To"] = receiver
+    # Create the body of the message
+    part = MIMEText(html, "html")
+    # Attach parts into message container.
+    the_msg.attach(part)
+    email_conn.sendmail(sender, receiver, the_msg.as_string())
+    email_conn.quit()
+    logging.info("E-Mail sent to: "+receiver)
+
+def create_html():
+    file = open(reportFilepath,"w")
+    file.write(html)
+    file.close()
+    logging.info("HTML file created")
+
+#==============================================================
+#   DATAFRAMES PREP
+#==============================================================
+
+# Pege Froggit weather stats
+daily_temp_df = pd.read_sql_query("SELECT year, month, day, temp_min, temp_max, temp_avg from daily_stats", pfwsConn)
+temp_df = pd.read_sql_query("SELECT * from temp_stats_monthly", pfwsConn)
+rain_df = pd.read_sql_query("SELECT * from rain_stats_monthly", pfwsConn)
+sun_df = pd.read_sql_query("SELECT * from sun_stats_monthly", pfwsConn)
+
+# Open Weather
+ow_df = pd.read_sql_query("SELECT date, cloudiness FROM openweather", pdbConn)
+ow_df['month'] = ow_df['date'].str[3:5].astype(int)
+ow_df['year'] = ow_df['date'].str[6:10].astype(int)
+
+# Meteolux
 mmp_df = pd.read_fwf(mmp, encoding='latin-1')
-
-# Columns needed to be renamed because wrongly split in source file
 mmp_df['MYT (°C)']=mmp_df['(°C)']
 mmp_df['MMR06_06 (mm)']=mmp_df['(mm)']
 mmp_df['MINS (h)']=mmp_df['MINS (h)']
-mmp_df = mmp_df[['Year', 'Month','MYT (°C)','MMR06_06 (mm)','MINS (h)']]
-
-# Daily meteorological parameters - Luxembourg/Findel Airport (WMO ID 06590)
-# https://data.public.lu/fr/datasets/daily-meteorological-parameters-luxembourg-findel-airport-wmo-id-06590/
-dmp = "https://data.public.lu/fr/datasets/r/a67bd8c0-b036-4761-b161-bdab272302e5"
+mmp_df['year'] = mmp_df['Year']
+mmp_df['month'] = mmp_df['Month']
+mmp_df = mmp_df[['year', 'month','MYT (°C)','MMR06_06 (mm)','MINS (h)']]
 
 dmp_df = pd.read_csv(dmp, encoding = 'ISO-8859-1')
-dmp_df['Day'] = dmp_df['DATE'].str[0:2].astype(int)
-dmp_df['Month'] = dmp_df['DATE'].str[3:5].astype(int)
-dmp_df['Year'] = dmp_df['DATE'].str[6:10].astype(int)
-dmp_df = dmp_df[['Year', 'Month', 'Day', 'DXT (°C)', 'DNT (°C)', 'DRR06_06 (mm)']]
-
-# Meteorological extreme parameters since 1947 - Luxembourg/Findel Airport (WMO ID 06590)
-# https://data.public.lu/fr/datasets/meteorological-extreme-parameters-since-1947-luxembourg-findel-airport-wmo-id-06590/
-
-mep = "https://data.public.lu/fr/datasets/r/daf945e9-58e9-4fea-9c1a-9b933d6c8b5e"
+dmp_df['day'] = dmp_df['DATE'].str[0:2].astype(int)
+dmp_df['month'] = dmp_df['DATE'].str[3:5].astype(int)
+dmp_df['year'] = dmp_df['DATE'].str[6:10].astype(int)
+dmp_df = dmp_df[['year', 'month', 'day', 'DXT (°C)', 'DNT (°C)', 'DRR06_06 (mm)']]
 
 mep_df = pd.read_csv(mep, encoding = 'ISO-8859-1', sep = ';')
 mep_df_transposed = mep_df.T
 mep_df = pd.melt(mep_df, id_vars = 'MONTH', value_vars = ['JAN', 'FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC']) 
 
-print("3 - Dataframes created")
+print("Dataframes created")
 
-'''-------------------------------------------------------------------------------------------
-------------------------- 4 - Extract temperatures data --------------------------------------
--------------------------------------------------------------------------------------------'''
+#==============================================================
+#   TEMPERATURE
+#==============================================================
+
 # Daily temps WIP
-daily_temp_df = pd.read_sql_query("SELECT year, month, day, temp_min, temp_max, temp_avg from daily_stats", conn)
 
 daily_min_temp = daily_temp_df[(daily_temp_df['month'] == currentmonth) & (daily_temp_df['year'] == currentyear)]['temp_min']
 daily_max_temp = daily_temp_df[(daily_temp_df['month'] == currentmonth) & (daily_temp_df['year'] == currentyear)]['temp_max']
 daily_avg_temp = daily_temp_df[(daily_temp_df['month'] == currentmonth) & (daily_temp_df['year'] == currentyear)]['temp_avg']
-
-# Meteolux data
-
-ml_daily_avg_temp = mmp_df[(mmp_df['Month'] == currentmonth) & (mmp_df['Year'] == currentyear)]['MYT (°C)']
-
-# In case of multiple values, loop through series (WIP: make conditional on data type)
-for i in ml_daily_avg_temp:
-  ml_daily_avg_temp = i
 
 x = daily_temp_df[(daily_temp_df['month'] == currentmonth) & (daily_temp_df['year'] == currentyear)]['day']
 
@@ -229,40 +364,6 @@ def temp_plot():
 temp_chart = temp_plot()
 
 # Monthly extremes (PROD ready)
-temp_df = pd.read_sql_query("SELECT * from temp_stats_monthly", conn)
-
-firstPeriod = str(temp_df['yearMonth'].min())
-lastPeriod = str(temp_df['yearMonth'].max())
-
-# Functions on temp_df
-def current_temp_df(var):
-  variable = temp_df[(temp_df['month'] == currentmonth) & (temp_df['year'] == currentyear)][var]
-  return(variable)
-
-def month_temp_df(var):
-  variable = temp_df[temp_df['month'] == currentmonth][var]
-  return(variable)
-
-def temp_tile(tile_title,avg, avg_year, min, min_year, max, max_year):
-  tile_content = """<div class="tile">
-      <div class="tileTitle">
-        """ + tile_title + """
-      </div>
-      <div class="tileContent">
-          <div class="tileMainFont"> """ + avg + """ °C""" + avg_year + """
-          </div>
-          <div class="tileLeftSub">
-              <div class="redArrow">&#8711;</div>
-              <div class="extremeValue"> """ + min + """ °C""" + min_year + """</div>
-          </div>
-          <div class="tileRightSub">
-              <div class="greenArrow">&#8710;</div>
-              <div class="extremeValue">  """ + max + """ °C""" + max_year + """</div>
-          </div>
-      </div>
-  </div>"""
-  return(tile_content)
-
 # Temp extremes current reporting period
 min_temp_rp = str(round(float(current_temp_df('min_temp_m')),1))
 max_temp_rp = str(round(float(current_temp_df('max_temp_m')),1))
@@ -299,43 +400,29 @@ max_avg_temp_m_year = str(int(temp_df.loc[max_avg_temp_m_row,['year']]))
 
 # Meteolux temp extremes current reporting period month
 
-def month_dmp_df(var):
-  variable = dmp_df[dmp_df['Month'] == currentmonth][var]
-  return(variable)
-
-def month_mmp_df(var):
-  variable = mmp_df[mmp_df['Month'] == currentmonth][var]
-  return(variable)
-
 ml_avg_min_temp_m = str(round(month_dmp_df('DNT (°C)').mean(),1))
 ml_avg_avg_temp_m = str(round(month_mmp_df('MYT (°C)').mean(),1))
 ml_avg_max_temp_m = str(round(month_dmp_df('DXT (°C)').mean(),1))
 
 ml_min_temp_m = str(round(float(month_dmp_df('DNT (°C)').min()),1))
 ml_min_temp_m_row = month_dmp_df('DNT (°C)').idxmin()
-ml_min_temp_m_year = str(int(dmp_df.loc[ml_min_temp_m_row,['Year']]))
+ml_min_temp_m_year = str(int(dmp_df.loc[ml_min_temp_m_row,['year']]))
 
 ml_max_temp_m = str(round(float(month_dmp_df('DXT (°C)').max()),1))
 ml_max_temp_m_row = month_dmp_df('DXT (°C)').idxmax()
-ml_max_temp_m_year = str(int(dmp_df.loc[ml_max_temp_m_row,['Year']]))
+ml_max_temp_m_year = str(int(dmp_df.loc[ml_max_temp_m_row,['year']]))
 
 ml_min_avg_temp_m = str(round(float(month_mmp_df('MYT (°C)').min()),1))
 ml_min_avg_temp_m_row = month_mmp_df('MYT (°C)').idxmin()
-ml_min_avg_temp_m_year = str(int(mmp_df.loc[ml_min_avg_temp_m_row,['Year']]))
+ml_min_avg_temp_m_year = str(int(mmp_df.loc[ml_min_avg_temp_m_row,['year']]))
 
 ml_max_avg_temp_m = str(round(float(month_mmp_df('MYT (°C)').max()),1))
 ml_max_avg_temp_m_row = month_mmp_df('MYT (°C)').idxmax()
-ml_max_avg_temp_m_year = str(int(mmp_df.loc[ml_max_avg_temp_m_row,['Year']]))
+ml_max_avg_temp_m_year = str(int(mmp_df.loc[ml_max_avg_temp_m_row,['year']]))
 
 ml_month_ext_temp_tile = temp_tile("Extremwäerter " + str(currentmonthname) + " - Meteolux", ml_avg_avg_temp_m, "", ml_min_temp_m, " ("+ml_min_temp_m_year+")", ml_max_temp_m, " ("+ml_max_temp_m_year+")")
 
 # Number of days per temp category
-def temp_days(columnName, luxName):
-  if int(current_temp_df(columnName)) != 0:
-    htmlName = """<div class="tileMainFont">""" + str(int(current_temp_df(columnName))) + """ """+luxName+"""</div>"""
-  else:
-    htmlName = """"""
-  return(htmlName)
 
 WüstentageHTML = temp_days('wuestentage', 'Wüstendeeg')
 TropennächteHTML = temp_days('tropennaechte', 'Tropennuechten')
@@ -362,47 +449,9 @@ extremeTempHTML = """   				<div class="tile">
 
 print("4 - Temperatures data retrieved")
 
-'''-------------------------------------------------------------------------------------------
-------------------------- 5 - Extract rain data ----------------------------------------------
--------------------------------------------------------------------------------------------'''
-rain_df = pd.read_sql_query("SELECT * from rain_stats_monthly", conn)
-
-firstPeriod = str(rain_df['yearMonth'].min())
-lastPeriod = str(rain_df['yearMonth'].max())
-
-
-# Functions on rain_df
-def current_rain_df(var):
-  variable = rain_df[(rain_df['month'] == currentmonth) & (rain_df['year'] == currentyear)][var]
-  return(variable)
-
-def month_rain_df(var):
-  variable = rain_df[rain_df['month'] == currentmonth][var]
-  return(variable)
-
-def rain_tile(tile_title, var, avg, avg_year, min, min_year, max, max_year):
-  tile_content = """
-				<div class="tile">
-					<div class="tileTitle">
-					  """ + tile_title + """
-					</div>
-                    <div class="tileContent">
-                        <div class="tileMainFont"> """ + avg + var + avg_year + """
-                        </div>
-                        <div class="tileLeftSub">
-                            <div class="redArrow">&#8711;</div>
-                            <div class="extremeValue"> """ + min + var + min_year + """</div>
-                        </div>
-                        <div class="tileRightSub">
-                            <div class="greenArrow">&#8710;</div>
-                            <div class="extremeValue">  """ + max + var + max_year + """</div>
-                        </div>
-                    </div>
-				</div>"""
-
-  
-  return(tile_content)
-
+#==============================================================
+#   RAIN
+#==============================================================
 # Rain extremes current reporting period
 sum_rain_rp = str(round(int(current_rain_df('max_rain_m')),1))
 
@@ -445,28 +494,28 @@ ml_avg_rain_m = str(round(month_mmp_df('MMR06_06 (mm)').mean(),1))
 
 ml_min_rain_m = str(month_mmp_df('MMR06_06 (mm)').min())
 ml_min_rain_m_row = month_mmp_df('MMR06_06 (mm)').idxmin()
-ml_min_rain_m_year = str(int(mmp_df.loc[ml_min_rain_m_row,['Year']]))
+ml_min_rain_m_year = str(int(mmp_df.loc[ml_min_rain_m_row,['year']]))
 
 ml_max_rain_m = str(month_mmp_df('MMR06_06 (mm)').max())
 ml_max_rain_m_row = month_mmp_df('MMR06_06 (mm)').idxmax()
-ml_max_rain_m_year = str(int(mmp_df.loc[ml_max_rain_m_row,['Year']]))
+ml_max_rain_m_year = str(int(mmp_df.loc[ml_max_rain_m_row,['year']]))
 
 ml_qty_rain_tile = rain_tile("Reenquantitéit "+currentmonthname+" - Meteolux", " l/m2", ml_avg_rain_m, "",ml_min_rain_m, " ("+ml_min_rain_m_year+")", ml_max_rain_m, " ("+ml_max_rain_m_year+")")
 
 # Rain days
 # Loop through each year-month pair
-Years = dmp_df['Year'].unique()
+Years = dmp_df['year'].unique()
 
 rain_days = {}
 sum_rain_days = 0
 
 for year in Years:
     # Retrieve number of rainy days for current month for each year
-    temp_dmp_df = dmp_df[dmp_df['Month'] == currentmonth][dmp_df['Year'] == year]
+    temp_dmp_df = dmp_df[dmp_df['month'] == currentmonth][dmp_df['year'] == year]
     rainy_days = 0
     day = 1
     while day <= days_in_month:
-      if temp_dmp_df[temp_dmp_df['Day'] == day]['DRR06_06 (mm)'].max() > 0:
+      if temp_dmp_df[temp_dmp_df['day'] == day]['DRR06_06 (mm)'].max() > 0:
           rainy_days = rainy_days + 1
       day = day + 1
     rain_days[year]=rainy_days
@@ -489,48 +538,10 @@ ml_days_rain_tile = rain_tile("Reendeeg "+currentmonthname+" - Meteolux", " Deeg
 print("5 - Rain data retrieved")
 
 
-'''-------------------------------------------------------------------------------------------
-------------------------- 6 - Extract sun data ----------------------------------------------
--------------------------------------------------------------------------------------------'''
-sun_df = pd.read_sql_query("SELECT * from sun_stats_monthly", conn)
 
-firstPeriod = str(sun_df['yearMonth'].min())
-lastPeriod = str(sun_df['yearMonth'].max())
-
-
-# Functions on sun_df
-def current_sun_df(var):
-  variable = sun_df[(sun_df['month'] == currentmonth) & (sun_df['year'] == currentyear)][var]
-  return(variable)
-
-def month_sun_df(var):
-  variable = sun_df[sun_df['month'] == currentmonth][var]
-  return(variable)
-
-def sun_tile(tile_title, var, avg, avg_year, min, min_year, max, max_year):
-  tile_content = """
-				<div class="tile">
-					<div class="tileTitle">
-					  """ + tile_title + """
-					</div>
-                    <div class="tileContent">
-                        <div class="tileMainFont"> """ + avg + var + avg_year + """
-                        </div>
-                        <div class="tileLeftSub">
-                            <div class="redArrow">&#8711;</div>
-                            <div class="extremeValue"> """ + min + var + min_year + """</div>
-                        </div>
-                        <div class="tileRightSub">
-                            <div class="greenArrow">&#8710;</div>
-                            <div class="extremeValue">  """ + max + var + max_year + """</div>
-                        </div>
-                    </div>
-				</div>"""
-
-  
-  return(tile_content)
-
-
+#==============================================================
+#   SUN
+#==============================================================
 # Sun extremes current reporting period
 sum_sun_rp = str(round(int(current_sun_df('sunshine_hours_m')),1))
 print(sum_sun_rp)
@@ -556,37 +567,44 @@ ml_avg_sun_m = str(round(month_mmp_df('MINS (h)').mean(),1))
 
 ml_min_sun_m = str(month_mmp_df('MINS (h)').min())
 ml_min_sun_m_row = month_mmp_df('MINS (h)').idxmin()
-ml_min_sun_m_year = str(int(mmp_df.loc[ml_min_sun_m_row,['Year']]))
+ml_min_sun_m_year = str(int(mmp_df.loc[ml_min_sun_m_row,['year']]))
 
 ml_max_sun_m = str(month_mmp_df('MINS (h)').max())
 ml_max_sun_m_row = month_mmp_df('MINS (h)').idxmax()
-ml_max_sun_m_year = str(int(mmp_df.loc[ml_max_sun_m_row,['Year']]))
+ml_max_sun_m_year = str(int(mmp_df.loc[ml_max_sun_m_row,['year']]))
 
 ml_qty_sun_tile = sun_tile("Sonnenstonnen "+currentmonthname+" - Meteolux", " Stonnen", ml_avg_sun_m, "",ml_min_sun_m, " ("+ml_min_sun_m_year+")", ml_max_sun_m, " ("+ml_max_sun_m_year+")")
 
 print("6 - Sun data retrieved")
 
-'''-------------------------------------------------------------------------------------------
-------------------------- 7 - Extract wind data ----------------------------------------------
--------------------------------------------------------------------------------------------'''
+
+#==============================================================
+#   WIND
+#==============================================================
 
 
 
+#==============================================================
+#   OTHER - WIP
+#==============================================================
 
-# print("7 - Wind data retrieved")
+ow_cloud = ow_df[(ow_df['month'] == currentmonth) & (ow_df['year'] == currentyear)][['cloudiness', 'year']]
+ow_cloud_count = ow_cloud.groupby(['cloudiness'])['cloudiness'].count()
 
-'''-------------------------------------------------------------------------------------------
-------------------------- 10 - Prepare report ------------------------------------------------
--------------------------------------------------------------------------------------------'''
+plot = ow_cloud_count.plot.bar(figsize=(5, 5))
+plt.savefig(os.path.join(mainPath, 'plots/ow_cloudiness.png'))
+
+#==============================================================
+#   HTML
+#==============================================================
+
+css_file = open(templateFilepath, 'r')
+css = css_file.read()
 
 # Report file name
 reportName="Wieder Rapport Kautebaach"
 reportFileName="Wieder Rapport "+reportPeriod+".html"
-
-templateFilepath = os.path.join(mainPath, 'Templates/css.txt')
-
-css_file = open(templateFilepath, 'r')
-css = css_file.read()
+reportFilepath = os.path.join(reportPath, reportFileName)
 
 html = """\
 <html>
@@ -704,51 +722,20 @@ html = """\
         </table></div>
 			<div class="disclaimer">
 				<p class="disclaimerTitle">Disclaimer</p>  
-				<p class="disclaimerContent">Dësen Rapport gouf automatesch generéiert. D'Donnée'en vunn der Statioun Pege Froggit sinn disponibel vunn """+firstPeriod+""" bis """+lastPeriod+""".</p>
-				<p class="disclaimerContent">D'Donnée'en vunn Meteolux sinn disponibel vunn Januar 1947 bis """+lastPeriod+""".</p>
+				<p class="disclaimerContent">Dësen Rapport gouf automatesch generéiert. D'Donnée'en vunn der Statioun Pege Froggit sinn disponibel vunn Juni 2019 bis """ + currentmonthname + """ """ + currentyearstr + """.</p>
+				<p class="disclaimerContent">D'Donnée'en vunn Meteolux sinn disponibel vunn Januar 1947 bis """ + currentmonthname + """ """ + currentyearstr + """.</p>
 			</div>  
   </body>
 </html>
 """
 
-reportFilepath = os.path.join(reportPath, reportFileName)
-
-def create_html():
-    file = open(reportFilepath,"w")
-    file.write(html)
-    file.close()
-    print("10 - HTML report created")
-
-
-'''-------------------------------------------------------------------------------------------
------------------------------ 6 - Send E-Mail ------------------------------------------------
--------------------------------------------------------------------------------------------'''
-
-def send_mail(x):
-    host = "smtp-mail.outlook.com"
-    port = 587
-    password = confidential[1]
-    sender = confidential[0]
-    to_list = [x]
-    email_conn = smtplib.SMTP(host,port)
-    email_conn.ehlo()
-    email_conn.starttls()
-    email_conn.login(sender, password)
-    the_msg = MIMEMultipart("alternative")
-    the_msg['Subject'] = reportName + " -Rapport "+reportPeriod # Subject
-    the_msg["From"] = sender
-    the_msg["To"] = PJ # Receiver
-    # Create the body of the message
-    part = MIMEText(html, "html")
-    # Attach parts into message container.
-    the_msg.attach(part)
-    email_conn.sendmail(sender, to_list, the_msg.as_string())
-    email_conn.quit()
-    print("Weather report sent to recipient(s)")
+#==============================================================
+#   SCRIPT
+#==============================================================
 
 if synology == False:
     create_html()
     send_mail(confidential[0])
 
 if synology == True:
-    send_mail(PJ)
+    send_mail(confidential[2])
