@@ -52,23 +52,26 @@ dmp = "https://data.public.lu/fr/datasets/r/a67bd8c0-b036-4761-b161-bdab272302e5
 mep = "https://data.public.lu/fr/datasets/r/daf945e9-58e9-4fea-9c1a-9b933d6c8b5e"
 
 #Filepaths
-reportPath = os.path.join(mainPath,'Reports/')
-dataPath = os.path.join(mainPath, 'Data')
+reportPath = os.path.join(mainPath,'reports/')
+dataPath = os.path.join(mainPath, 'data')
 dataFilepath = os.path.join(dataPath, pfws)
 pdbFilepath = os.path.join(pdbPath, pdb)
 conf_path = os.path.join(mainPath, conf_file)
 log_file_path = os.path.join(mainPath, 'log/main.log')
-templateFilepath = os.path.join(mainPath, 'Templates/css.txt')
+templateFilepath = os.path.join(mainPath, 'templates/css.txt')
 
 logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
+if synology == True:
+   logger.setLevel(logging.INFO)
+else:
+  logger.setLevel(logging.DEBUG)
 fhandler = logging.FileHandler(filename = log_file_path, mode = 'a')
 formatter = logging.Formatter('%(asctime)s.%(msecs)03d [%(levelname)s] %(message)s', '%d-%m-%Y %H:%M:%S')
 fhandler.setFormatter(formatter)
 logger.addHandler(fhandler)
 
 logging.getLogger('matplotlib.font_manager').disabled = True
-logging.debug('Start of program')
+logging.info('Start of program')
 
 #==============================================================
 #   DATES
@@ -85,7 +88,7 @@ elif automatic_report == 0:
     currentyear = manual_year
     currentmonth = manual_month
 else:
-    print("Reporting period not correctly chosen!")
+    logging.error("Reporting period not correctly chosen!")
     exit()
 days_in_month = calendar.monthrange(currentyear, currentmonth)[1]
 
@@ -95,7 +98,7 @@ else:
     currentmonthstr = str(currentmonth)
 currentyearstr = str(currentyear)
 
-logging.debug('Current month and year:' + currentyearstr + "-" + currentmonthstr)
+logging.info('Current month and year:' + currentyearstr + "-" + currentmonthstr)
 
 Méint = {
   "01": "Januar",
@@ -143,17 +146,16 @@ with open(conf_path) as f:
 #   FUNCTIONS
 #==============================================================
 
-def current_temp_df(var):
-  variable = temp_df[(temp_df['month'] == currentmonth) & (temp_df['year'] == currentyear)][var]
-  logging.info(var + ": ")
-  logging.info(str(variable))
+def current_df(var, table):
+  variable = table[(table['month'] == currentmonth) & (table['year'] == currentyear)][var]
+  logging.debug(var + ": ")
+  logging.debug(str(variable))
   return(variable)
 
-
-def month_temp_df(var):
-  variable = temp_df[temp_df['month'] == currentmonth][var]
-  logging.info(var + ": ")
-  logging.info(str(variable))
+def month_df(var, table):
+  variable = table[table['month'] == currentmonth][var]
+  logging.debug(var + ": ")
+  logging.debug(str(variable))
   return(variable)
 
 def temp_tile(tile_title, avg, avg_year, min, min_year, max, max_year):
@@ -175,18 +177,6 @@ def temp_tile(tile_title, avg, avg_year, min, min_year, max, max_year):
       </div>
   </div>"""
   return(tile_content)
-
-def current_rain_df(var):
-  variable = rain_df[(rain_df['month'] == currentmonth) & (rain_df['year'] == currentyear)][var]
-  logging.info(var + ": ")
-  logging.info(str(variable))
-  return(variable)
-
-def month_rain_df(var):
-  variable = rain_df[rain_df['month'] == currentmonth][var]
-  logging.info(var + ": ")
-  logging.info(str(variable))
-  return(variable)
 
 def rain_tile(tile_title, var, avg, avg_year, min, min_year, max, max_year):
   tile_content = """
@@ -211,36 +201,12 @@ def rain_tile(tile_title, var, avg, avg_year, min, min_year, max, max_year):
   
   return(tile_content)
 
-def month_dmp_df(var):
-  variable = dmp_df[dmp_df['month'] == currentmonth][var]
-  logging.info(var + ": ")
-  logging.info(str(variable))
-  return(variable)
-
-def month_mmp_df(var):
-  variable = mmp_df[mmp_df['month'] == currentmonth][var]
-  logging.info(var + ": ")
-  logging.info(str(variable))
-  return(variable)
-
 def temp_days(columnName, luxName):
-  if int(current_temp_df(columnName)) != 0:
-    htmlName = """<div class="tileMainFont">""" + str(int(current_temp_df(columnName))) + """ """+luxName+"""</div>"""
+  if int(current_df(columnName, temp_df)) != 0:
+    htmlName = """<div class="tileMainFont">""" + str(int(current_df(columnName, temp_df))) + """ """+luxName+"""</div>"""
   else:
     htmlName = """"""
   return(htmlName)
-
-def current_sun_df(var):
-  variable = sun_df[(sun_df['month'] == currentmonth) & (sun_df['year'] == currentyear)][var]
-  logging.info(var + ": ")
-  logging.info(str(variable))
-  return(variable)
-
-def month_sun_df(var):
-  variable = sun_df[sun_df['month'] == currentmonth][var]
-  logging.info(var + ": ")
-  logging.info(str(variable))
-  return(variable)
 
 def sun_tile(tile_title, var, avg, avg_year, min, min_year, max, max_year):
   tile_content = """
@@ -325,7 +291,7 @@ mep_df = pd.read_csv(mep, encoding = 'ISO-8859-1', sep = ';')
 mep_df_transposed = mep_df.T
 mep_df = pd.melt(mep_df, id_vars = 'MONTH', value_vars = ['JAN', 'FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC']) 
 
-print("Dataframes created")
+logging.info("Dataframes created")
 
 #==============================================================
 #   TEMPERATURE
@@ -365,59 +331,59 @@ temp_chart = temp_plot()
 
 # Monthly extremes (PROD ready)
 # Temp extremes current reporting period
-min_temp_rp = str(round(float(current_temp_df('min_temp_m')),1))
-max_temp_rp = str(round(float(current_temp_df('max_temp_m')),1))
-avg_temp_rp = str(round(float(current_temp_df('avg_temp_m')),1))
+min_temp_rp = str(round(float(current_df('min_temp_m', temp_df)),1))
+max_temp_rp = str(round(float(current_df('max_temp_m', temp_df)),1))
+avg_temp_rp = str(round(float(current_df('avg_temp_m', temp_df)),1))
 
 current_temp_tile = temp_tile("Temperatur " + str(reportPeriod),avg_temp_rp, "", min_temp_rp, "", max_temp_rp, "")
 
 # Average temp extremes current reporting period month
-avg_min_temp_m = str(round(month_temp_df('min_temp_m').mean(),1))
-avg_avg_temp_m = str(round(month_temp_df('avg_temp_m').mean(),1))
-avg_max_temp_m = str(round(month_temp_df('max_temp_m').mean(),1))
+avg_min_temp_m = str(round(month_df('min_temp_m', temp_df).mean(),1))
+avg_avg_temp_m = str(round(month_df('avg_temp_m', temp_df).mean(),1))
+avg_max_temp_m = str(round(month_df('max_temp_m', temp_df).mean(),1))
 
 # Minimum temp extremes current reporting period month
-min_temp_m = str(round(month_temp_df('min_temp_m').min(),1))
-min_temp_m_row = month_temp_df('min_temp_m').idxmin()
+min_temp_m = str(round(month_df('min_temp_m', temp_df).min(),1))
+min_temp_m_row = month_df('min_temp_m', temp_df).idxmin()
 min_temp_m_year = str(int(temp_df.loc[min_temp_m_row,['year']]))
 
 
 # Maximum temp extremes current reporting period month
-max_temp_m = str(round(month_temp_df('max_temp_m').max(),1))
-max_temp_m_row = month_temp_df('max_temp_m').idxmax()
+max_temp_m = str(round(month_df('max_temp_m', temp_df).max(),1))
+max_temp_m_row = month_df('max_temp_m', temp_df).idxmax()
 max_temp_m_year = str(int(temp_df.loc[max_temp_m_row,['year']]))
 
 month_ext_temp_tile = temp_tile("Extremwäerter " + str(currentmonthname) + " - Pege Froggit", avg_avg_temp_m, "", min_temp_m, " ("+min_temp_m_year+")", max_temp_m, " ("+max_temp_m_year+")")
 
 # Average temp extremes current reporting period month
-min_avg_temp_m = str(round(month_temp_df('avg_temp_m').min(),1))
-min_avg_temp_m_row = month_temp_df('avg_temp_m').idxmin()
+min_avg_temp_m = str(round(month_df('avg_temp_m', temp_df).min(),1))
+min_avg_temp_m_row = month_df('avg_temp_m', temp_df).idxmin()
 min_avg_temp_m_year = str(int(temp_df.loc[min_avg_temp_m_row,['year']]))
 
-max_avg_temp_m = str(round(month_temp_df('avg_temp_m').max(),1))
-max_avg_temp_m_row = month_temp_df('max_temp_m').idxmax()
+max_avg_temp_m = str(round(month_df('avg_temp_m', temp_df).max(),1))
+max_avg_temp_m_row = month_df('max_temp_m', temp_df).idxmax()
 max_avg_temp_m_year = str(int(temp_df.loc[max_avg_temp_m_row,['year']]))
 
 # Meteolux temp extremes current reporting period month
 
-ml_avg_min_temp_m = str(round(month_dmp_df('DNT (°C)').mean(),1))
-ml_avg_avg_temp_m = str(round(month_mmp_df('MYT (°C)').mean(),1))
-ml_avg_max_temp_m = str(round(month_dmp_df('DXT (°C)').mean(),1))
+ml_avg_min_temp_m = str(round(month_df('DNT (°C)', dmp_df).mean(),1))
+ml_avg_avg_temp_m = str(round(month_df('MYT (°C)', mmp_df).mean(),1))
+ml_avg_max_temp_m = str(round(month_df('DXT (°C)', dmp_df).mean(),1))
 
-ml_min_temp_m = str(round(float(month_dmp_df('DNT (°C)').min()),1))
-ml_min_temp_m_row = month_dmp_df('DNT (°C)').idxmin()
+ml_min_temp_m = str(round(float(month_df('DNT (°C)', dmp_df).min()),1))
+ml_min_temp_m_row = month_df('DNT (°C)', dmp_df).idxmin()
 ml_min_temp_m_year = str(int(dmp_df.loc[ml_min_temp_m_row,['year']]))
 
-ml_max_temp_m = str(round(float(month_dmp_df('DXT (°C)').max()),1))
-ml_max_temp_m_row = month_dmp_df('DXT (°C)').idxmax()
+ml_max_temp_m = str(round(float(month_df('DXT (°C)', dmp_df).max()),1))
+ml_max_temp_m_row = month_df('DXT (°C)', dmp_df).idxmax()
 ml_max_temp_m_year = str(int(dmp_df.loc[ml_max_temp_m_row,['year']]))
 
-ml_min_avg_temp_m = str(round(float(month_mmp_df('MYT (°C)').min()),1))
-ml_min_avg_temp_m_row = month_mmp_df('MYT (°C)').idxmin()
+ml_min_avg_temp_m = str(round(float(month_df('MYT (°C)', mmp_df).min()),1))
+ml_min_avg_temp_m_row = month_df('MYT (°C)', mmp_df).idxmin()
 ml_min_avg_temp_m_year = str(int(mmp_df.loc[ml_min_avg_temp_m_row,['year']]))
 
-ml_max_avg_temp_m = str(round(float(month_mmp_df('MYT (°C)').max()),1))
-ml_max_avg_temp_m_row = month_mmp_df('MYT (°C)').idxmax()
+ml_max_avg_temp_m = str(round(float(month_df('MYT (°C)', mmp_df).max()),1))
+ml_max_avg_temp_m_row = month_df('MYT (°C)', mmp_df).idxmax()
 ml_max_avg_temp_m_year = str(int(mmp_df.loc[ml_max_avg_temp_m_row,['year']]))
 
 ml_month_ext_temp_tile = temp_tile("Extremwäerter " + str(currentmonthname) + " - Meteolux", ml_avg_avg_temp_m, "", ml_min_temp_m, " ("+ml_min_temp_m_year+")", ml_max_temp_m, " ("+ml_max_temp_m_year+")")
@@ -447,57 +413,57 @@ extremeTempHTML = """   				<div class="tile">
 					</div>
 				</div>"""
 
-print("4 - Temperatures data retrieved")
+logging.info("Temperatures data retrieved")
 
 #==============================================================
 #   RAIN
 #==============================================================
 # Rain extremes current reporting period
-sum_rain_rp = str(round(int(current_rain_df('max_rain_m')),1))
+sum_rain_rp = str(round(int(current_df('max_rain_m', rain_df)),1))
 
 # Average rain current reporting period month
-avg_max_rain_m = str(round(month_rain_df('max_rain_m').mean(),1))
+avg_max_rain_m = str(round(month_df('max_rain_m', rain_df).mean(),1))
 
 # Minimum rain extremes current reporting period month
-min_rain_m = str(round(month_rain_df('max_rain_m').min(),1))
-min_rain_m_row = month_rain_df('max_rain_m').idxmin()
+min_rain_m = str(round(month_df('max_rain_m', rain_df).min(),1))
+min_rain_m_row = month_df('max_rain_m', rain_df).idxmin()
 min_rain_m_year = str(int(rain_df.loc[min_rain_m_row,['year']]))
 
 # Maximum rain extremes current reporting period month
-max_rain_m = str(round(month_rain_df('max_rain_m').max(),1))
-max_rain_m_row = month_rain_df('max_rain_m').idxmax()
+max_rain_m = str(round(month_df('max_rain_m', rain_df).max(),1))
+max_rain_m_row = month_df('max_rain_m', rain_df).idxmax()
 max_rain_m_year = str(int(rain_df.loc[max_rain_m_row,['year']]))
 
 qty_rain_tile = rain_tile("Reenquantitéit "+currentmonthname+" - Pege Froggit", " l/m2", avg_max_rain_m, "",min_rain_m, " ("+min_rain_m_year+")", max_rain_m, " ("+max_rain_m_year+")")
 
 # Rainy Days
-rain_days_rp = str(round(current_rain_df('rainy_days').max(),1))
+rain_days_rp = str(round(current_df('rainy_days', rain_df).max(),1))
 
 # Minimum rain days current reporting period month
-min_rain_days_m = str(round(month_rain_df('rainy_days').min(),1))
-min_rain__days_m_row = month_rain_df('rainy_days').idxmin()
+min_rain_days_m = str(round(month_df('rainy_days', rain_df).min(),1))
+min_rain__days_m_row = month_df('rainy_days', rain_df).idxmin()
 min_rain_days_m_year = str(int(rain_df.loc[min_rain__days_m_row,['year']]))
 
 # Maximum rain days current reporting period month
-max_rain_days_m = str(round(month_rain_df('rainy_days').max(),1))
-max_rain_days_m_row = month_rain_df('rainy_days').idxmax()
+max_rain_days_m = str(round(month_df('rainy_days', rain_df).max(),1))
+max_rain_days_m_row = month_df('rainy_days', rain_df).idxmax()
 max_rain_days_m_year = str(int(rain_df.loc[max_rain_days_m_row,['year']]))
 
 # Average rain days current reporting period month
-avg_max_rain_days_m = str(round(month_rain_df('rainy_days').mean(),1))
+avg_max_rain_days_m = str(round(month_df('rainy_days', rain_df).mean(),1))
 
 days_rain_tile = rain_tile("Reendeeg "+currentmonthname+" - Pege Froggit", " Deeg", avg_max_rain_days_m, "",min_rain_days_m, " ("+min_rain_days_m_year+")", max_rain_days_m, " ("+max_rain_days_m_year+")")
 
 # Meteolux
 # Rain quantity
-ml_avg_rain_m = str(round(month_mmp_df('MMR06_06 (mm)').mean(),1))
+ml_avg_rain_m = str(round(month_df('MMR06_06 (mm)', mmp_df).mean(),1))
 
-ml_min_rain_m = str(month_mmp_df('MMR06_06 (mm)').min())
-ml_min_rain_m_row = month_mmp_df('MMR06_06 (mm)').idxmin()
+ml_min_rain_m = str(month_df('MMR06_06 (mm)', mmp_df).min())
+ml_min_rain_m_row = month_df('MMR06_06 (mm)', mmp_df).idxmin()
 ml_min_rain_m_year = str(int(mmp_df.loc[ml_min_rain_m_row,['year']]))
 
-ml_max_rain_m = str(month_mmp_df('MMR06_06 (mm)').max())
-ml_max_rain_m_row = month_mmp_df('MMR06_06 (mm)').idxmax()
+ml_max_rain_m = str(month_df('MMR06_06 (mm)', mmp_df).max())
+ml_max_rain_m_row = month_df('MMR06_06 (mm)', mmp_df).idxmax()
 ml_max_rain_m_year = str(int(mmp_df.loc[ml_max_rain_m_row,['year']]))
 
 ml_qty_rain_tile = rain_tile("Reenquantitéit "+currentmonthname+" - Meteolux", " l/m2", ml_avg_rain_m, "",ml_min_rain_m, " ("+ml_min_rain_m_year+")", ml_max_rain_m, " ("+ml_max_rain_m_year+")")
@@ -535,7 +501,7 @@ ml_min_rain_days_m_year = str(ml_min_rain_days_keys[0])
 
 ml_days_rain_tile = rain_tile("Reendeeg "+currentmonthname+" - Meteolux", " Deeg", ml_avg_rain_days_m, "",ml_min_rain_days_m, " ("+ml_min_rain_days_m_year+")", ml_max_rain_days_m, " ("+ml_max_rain_days_m_year+")")
 
-print("5 - Rain data retrieved")
+logging.info("Rain data retrieved")
 
 
 
@@ -543,39 +509,38 @@ print("5 - Rain data retrieved")
 #   SUN
 #==============================================================
 # Sun extremes current reporting period
-sum_sun_rp = str(round(int(current_sun_df('sunshine_hours_m')),1))
-print(sum_sun_rp)
+sum_sun_rp = str(round(int(current_df('sunshine_hours_m', sun_df)),1))
 
 # Average sun current reporting period month
-avg_sun_m = str(round(month_sun_df('sunshine_hours_m').mean(),1))
+avg_sun_m = str(round(month_df('sunshine_hours_m', sun_df).mean(),1))
 
 # Minimum sun extremes current reporting period month
-min_sun_m = str(round(month_sun_df('sunshine_hours_m').min(),1))
-min_sun_m_row = month_sun_df('sunshine_hours_m').idxmin()
+min_sun_m = str(round(month_df('sunshine_hours_m', sun_df).min(),1))
+min_sun_m_row = month_df('sunshine_hours_m', sun_df).idxmin()
 min_sun_m_year = str(int(sun_df.loc[min_sun_m_row,['year']]))
 
 # Maximum sun extremes current reporting period month
-max_sun_m = str(round(month_sun_df('sunshine_hours_m').max(),1))
-max_sun_m_row = month_sun_df('sunshine_hours_m').idxmax()
+max_sun_m = str(round(month_df('sunshine_hours_m', sun_df).max(),1))
+max_sun_m_row = month_df('sunshine_hours_m', sun_df).idxmax()
 max_sun_m_year = str(int(sun_df.loc[max_sun_m_row,['year']]))
 
 qty_sun_tile = sun_tile("Sonnenstonnen "+currentmonthname+" - Pege Froggit", " Stonnen", avg_sun_m, "",min_sun_m, " ("+min_sun_m_year+")", max_sun_m, " ("+max_sun_m_year+")")
 
 # Meteolux
 # Sun quantity
-ml_avg_sun_m = str(round(month_mmp_df('MINS (h)').mean(),1))
+ml_avg_sun_m = str(round(month_df('MINS (h)', mmp_df).mean(),1))
 
-ml_min_sun_m = str(month_mmp_df('MINS (h)').min())
-ml_min_sun_m_row = month_mmp_df('MINS (h)').idxmin()
+ml_min_sun_m = str(month_df('MINS (h)', mmp_df).min())
+ml_min_sun_m_row = month_df('MINS (h)', mmp_df).idxmin()
 ml_min_sun_m_year = str(int(mmp_df.loc[ml_min_sun_m_row,['year']]))
 
-ml_max_sun_m = str(month_mmp_df('MINS (h)').max())
-ml_max_sun_m_row = month_mmp_df('MINS (h)').idxmax()
+ml_max_sun_m = str(month_df('MINS (h)', mmp_df).max())
+ml_max_sun_m_row = month_df('MINS (h)', mmp_df).idxmax()
 ml_max_sun_m_year = str(int(mmp_df.loc[ml_max_sun_m_row,['year']]))
 
 ml_qty_sun_tile = sun_tile("Sonnenstonnen "+currentmonthname+" - Meteolux", " Stonnen", ml_avg_sun_m, "",ml_min_sun_m, " ("+ml_min_sun_m_year+")", ml_max_sun_m, " ("+ml_max_sun_m_year+")")
 
-print("6 - Sun data retrieved")
+logging.info("Sun data retrieved")
 
 
 #==============================================================
