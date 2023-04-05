@@ -39,20 +39,14 @@ body {
 				}
 			.disclaimer {
 				padding: 1px;
-				border: 2px solid white;
 				margin: 5px;
 				border-radius: 3px;
 				}
 
-			.disclaimerTitle {
-				font-size:0.8 em;
-				font-family:verdana;
-				text-decoration: underline;
-				  }
-
 			.disclaimerContent {
-				font-size:0.8 em; 
-				font-family:verdana;       
+				font-size:0.25 em; 
+				font-family:verdana;
+				text-align:center;      
 				  }
 
 			.chapterHeader {
@@ -67,12 +61,6 @@ body {
 				font-family:verdana;
 				font-size:1.2em;
 						font-weight: bold;
-				}
-				
-			.chapterContainer {
-				padding: 5px;
-				overflow: auto;
-				margin-bottom: 10px;
 				}
 				
 			.tile {
@@ -94,10 +82,41 @@ body {
 				font-weight: bold;
 				}
 
-			  .tileContent {
+			.tileContent {
 				overflow: hidden;
 				padding-bottom: 15px;
 				padding-top: 15px;
+				}
+			
+			.tileCurrent {
+				width: 40%;  
+				float: left;
+				overflow: hidden;
+				padding-bottom: 15px;
+				padding-top: 15px;
+				}
+			
+			.tileCurrentTitle{
+				text-align:center;
+				font-style: bold;
+				}
+			
+			.tileSub {
+				font-size: 0.8em;
+				text-align:center;
+				}
+			
+			.tileHist {
+				width: 60%;  
+				float: right;
+				overflow: hidden;
+				padding-bottom: 15px;
+				padding-top: 15px;
+				}
+				
+			.tileHistTitle{ 
+				text-align:center;
+				font-style: bold;			
 				}
 				  
 			.tileMainFont {
@@ -157,12 +176,6 @@ body {
 				
 			.italic {
 				font-style: italic;
-				}
-				  
-			.extremeValue {
-				font-size:0.75em;
-				width: 75%;
-				float: right;
 				}
 
 			.headerColumn {

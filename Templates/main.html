@@ -1,0 +1,110 @@
+<html>
+	<head>
+		<title>{{ report_name }} {{ report_period_name }}</title>
+		<style>{{ css }}</style>
+	</head>
+	<body>
+		<div class="container">
+			<div class="titleBar">
+				<p class="titleFont">{{ report_name }}</p>
+				<p class="titleSub">{{ report_period_name }}</p>
+			</div>
+			<div class="chapter">	
+				<div class="chapterHeader">1 - Temperatur</div>
+				<div class="tileContent">
+					<div class="tileTitle">Dës Period</div>
+					<div class="tileMainFont">{{ avg_temp_rp }} °C</div>
+					<div class="tileSub">{{ min_temp_rp }} °C / {{ max_temp_rp }} °C</div>
+				</div>
+				<div class="tileContent">
+					<div class="tileTitle">Historesch</div>
+					<div class="tileMainFont">{{ avg_avg_temp_m }} °C</div>
+					<div class="tileSub">{{ min_temp_m }} °C ({{ min_temp_m_year }}) / {{ max_temp_m }} °C ({{ max_temp_m_year }})</div>
+				</div>
+			</div>
+			<div class="chapter">	
+				<div class="chapterHeader">2 - Reen</div>
+				<div class="tileContent">
+					<div class="tileTitle">Dës Period</div>
+					<div class="tileMainFont">  {{ sum_rain_rp }} l/m2</div>
+					<div class="tileMainFont">  {{ rain_days_rp }} Reendeeg</div>
+				</div>
+				<div class="tileContent">
+					<div class="tileTitle">Historesch</div>
+					<div class="tileMainFont">  {{ ml_avg_rain_m }} l/m2</div>
+					<div class="tileSub">{{ ml_min_rain_m }} ({{ ml_min_rain_m_year }}) / {{ ml_max_rain_m }} ({{ ml_max_rain_m_year }})</div>
+					<br>
+					<div class="tileMainFont">  {{ ml_avg_rain_days_m }} Reendeeg</div>
+					<div class="tileSub">{{ ml_min_rain_days_m }} ({{ ml_min_rain_days_m_year }}) / {{ ml_max_rain_days_m }} ({{ ml_max_rain_days_m_year }})</div>
+				</div>
+				<br>
+				<br>	
+			</div>
+			<div class="chapter">	
+				<div class="chapterHeader">3 - Sonn</div>
+					<div class="tileContent">
+						<div class="tileTitle">Dës Period</div>
+						<div class="tileMainFont">{{ sum_sun_rp }} Stonnen</div>
+					</div>
+					<div class="tileContent">
+						<div class="tileTitle">Historesch</div>
+						<div class="tileMainFont">  {{ ml_avg_sun_m }} Stonnen</div>
+						<div class="tileSub">{{ ml_min_sun_m }} ({{ ml_min_sun_m_year }}) / {{ ml_max_sun_m }} ({{ ml_max_sun_m_year }})</div>
+					</div>
+				  <br>
+			</div>
+			<div class="chapter">	
+				<div class="chapterHeader">4 - Wand</div>
+					<div class="italic">Geplangt</div>
+					<br>
+			</div>
+			<div class="chapter">	
+				<div class="chapterHeader">5 - Erkläerungen</div>
+				<table class="extremeTempTable">
+					<tr>
+						<th>Kenndaag</th>
+						<th>Erkläerung</th>
+					</tr>
+					<tr>
+						<td>Wüstendag</td>
+						<td>Maximaltemperatur mind. 35 °C</td>
+					</tr>
+					<tr>
+						<td>Tropennuecht</td>
+						<td>Minimaltemperatur mind. 20 °C</td>
+					</tr>
+					<tr>
+						<td>Waarmen Daag</td>
+						<td>Maximaltemperatur mind. 30 °C</td>
+					</tr>
+					<tr>
+						<td>Summerdaag</td>
+						<td>Maximaltemperatur mind. 25 °C</td>
+					</tr>
+					<tr>
+						<td>Vegetatiounsdeeg</td>
+						<td>Mediantemperatur mind. 5 °C</td>
+					</tr>
+					<tr>
+						<td>Frascht</td>
+						<td>Mindesttemperatur ënnert 0 °C</td>
+					</tr>
+					<tr>
+						<td>Äisdaag</td>
+						<td>Maximaltemparatur ënnert 0 °C</td>
+					</tr>
+				</table>
+			</div>
+			<div class="chapter">	
+				<div class="disclaimer">
+					<p class="disclaimerContent">Dësen Rapport gouf automatesch generéiert. D'Donnée'en vunn der Statioun Pege Froggit sinn disponibel vunn Juni 2019 bis  {{ current_month_name }}  {{ current_year_str }}.</p>
+					<p class="disclaimerContent">D'Donnée'en vunn Meteolux sinn disponibel vunn Januar 1947 bis {{ current_month_name }}  {{ current_year_str }}.</p>
+					<hr>
+					<p class="disclaimerContent">PEGE FROGGIT Wieder Statioun</p>
+					<p class="disclaimerContent">Roch Peter James | 10, an der Ae | L-9663 Kautebaach</p>
+					<p class="disclaimerContent">Tel. +352 691 88 12 64 | E-Mail <a href="mailto:peteroch1988@gmail.com">peteroch1988@gmail</a></p>
+				</div>
+			</div>
+		</div>  
+	</body>
+</html>
