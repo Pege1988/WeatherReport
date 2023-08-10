@@ -23,6 +23,8 @@ body {
 				text-align:center;
 				margin-top: 10px;
 				margin-bottom: 10px;
+				padding-left:5px;
+				padding-right:5px;
 				}
 
 			.titleSub {
@@ -51,15 +53,11 @@ body {
 
 			.chapter {
 				padding-top:5px;
-				padding-bottom: 7px;
-				margin-bottom: 10px;
+				padding-bottom: 15px;
 				}
 
 			.chapterHeader {
-				padding: 5px;
 				padding-bottom: 7px;
-				padding-top: 7px;
-				margin-bottom: 10px;
 				color: #003F5F;
 				text-align:center;
 				font-family:verdana;
@@ -67,29 +65,22 @@ body {
 				font-weight: bold;
 				}
 				
-			.tile {
-				background-color:#004162;
-				padding: 0px;
-				margin: 5px;
-				border-radius: 2px;
-				float: center;
-				}
-				
 			.tileTitle {
 				padding-left: 5px;
-				padding-bottom: 15px;
-				padding-top: 15px;
+				padding-bottom: 5px;
 				border-bottom: 1px solid #003F5F;
 				border-radius: 2px;
 				color:#003F5F;
 				font-size: 1em;
 				font-weight: bold;
+				text-align:center;
 				}
 
 			.tileContent {
-				overflow: hidden;
 				padding-bottom: 15px;
-				padding-top: 15px;
+				padding-top: 5px;
+				margin-left:5px;
+				margin-right:5px;
 				}
 			
 			.tileSub {
@@ -123,6 +114,8 @@ body {
 				
 			.italic {
 				font-style: italic;
+				color:#003F5F;
+				text-align:center;
 				}
 
 			table, th, td {
