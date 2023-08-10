@@ -38,12 +38,10 @@ def current_month_str():
         current_month_str = "0" + str(current_month())
     else:
         current_month_str = str(current_month())
-    logging.info('Current month:' + current_month_str)
     return current_month_str
 
 def current_year_str():
     current_year_str = str(current_year())
-    logging.info('Current year:' + current_year_str)
     return current_year_str
 
 def current_month_name():

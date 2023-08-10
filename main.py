@@ -23,13 +23,6 @@ from main import html
 #==============================================================
 #   PARAMETERS
 #==============================================================
-
-# Indicate if local run or on synology NAS
-
-automatic_report = True # If True automatic report dates, if False manual report dates
-manual_year = 2019 # Integer between 2019-202x
-manual_month = 9 # Integer between 1-12
-
 # Paths
 main_path = os.getcwd()
 if main_path.find("Dropbox") != -1:
@@ -81,6 +74,7 @@ logging.info('Start of program')
 #==============================================================
 
 report_period = dt.current_year_str() + "-" + dt.current_month_str()
+logging.info('Report period: ' + report_period)
 report_period_name = dt.current_month_name() + " " + dt.current_year_str()
 
 #==============================================================
@@ -109,95 +103,12 @@ with open(conf_path) as f:
 #   FUNCTIONS
 #==============================================================
 
-
-def main_tile_title(title):
-  tile_content = """<div class="tile">
-      <div class="tileTitle">
-        """ + title + """
-      </div>
-      """
-  return(tile_content)
-
-def main_tile_current(title, avg, min, max):
-  tile_content = """
-      <div class="tileContent">
-        <div class="tileCurrent">
-            <div class="tileCurrentTitle">
-            """ + title + """
-            </div>
-            <div class="tileMainFont"> """ + avg + """ °C
-            </div>
-            <div class="tileSub">""" + min + """ °C / """ + max + """ °C
-            </div>
-        </div>"""
-  return(tile_content)
-
-def main_tile_hist(avg, min, min_year, max, max_year):
-  tile_content = """
-        <div class="tileHist">
-            <div class="tileHistTitle">
-            Historesch
-            </div>
-            <div class="tileMainFont"> """ + avg + """ °C
-            </div>
-            <div class="tileSub"> """ + min + """ °C""" + min_year + """ / """ + max + """ °C""" + max_year + """
-            </div>
-        </div>
-      </div>
-  </div>"""
-  return(tile_content)
-
-def rain_tile(tile_title, var, avg, avg_year, min, min_year, max, max_year):
-  tile_content = """
-				<div class="tile">
-					<div class="tileTitle">
-					  """ + tile_title + """
-					</div>
-                    <div class="tileContent">
-                        <div class="tileMainFont"> """ + avg + var + avg_year + """
-                        </div>
-                        <div class="tileLeftSub">
-                            <div class="redArrow">&#8711;</div>
-                            <div class="extremeValue"> """ + min + var + min_year + """</div>
-                        </div>
-                        <div class="tileRightSub">
-                            <div class="greenArrow">&#8710;</div>
-                            <div class="extremeValue">  """ + max + var + max_year + """</div>
-                        </div>
-                    </div>
-				</div>"""
-
-  
-  return(tile_content)
-
 def temp_days(column_name, lux_name):
   if int(df.current_df(column_name, temp_df)) != 0:
     html_name = """<div class="tileMainFont">""" + str(int(df.current_df(column_name, temp_df))) + """ """+lux_name+"""</div>"""
   else:
     html_name = """"""
   return(html_name)
-
-def sun_tile(tile_title, var, avg, avg_year, min, min_year, max, max_year):
-  tile_content = """
-				<div class="tile">
-					<div class="tileTitle">
-					  """ + tile_title + """
-					</div>
-                    <div class="tileContent">
-                        <div class="tileMainFont"> """ + avg + var + avg_year + """
-                        </div>
-                        <div class="tileLeftSub">
-                            <div class="redArrow">&#8711;</div>
-                            <div class="extremeValue"> """ + min + var + min_year + """</div>
-                        </div>
-                        <div class="tileRightSub">
-                            <div class="greenArrow">&#8710;</div>
-                            <div class="extremeValue">  """ + max + var + max_year + """</div>
-                        </div>
-                    </div>
-				</div>"""
-        
-  return(tile_content)
 
 def send_mail(receiver):
     host = "smtp-mail.outlook.com"
@@ -265,9 +176,17 @@ logging.info("Dataframes created")
 #==============================================================
 #   TEMPERATURE
 #==============================================================
+ml_min_temp_m = str(round(float(df.month_df('DNT (°C)', dmp_df).min()),1))
+ml_min_temp_m_row = df.month_df('DNT (°C)', dmp_df).idxmin()
+ml_min_temp_m_year = str(int(dmp_df.loc[ml_min_temp_m_row,['year']]))
 
-# Daily temps WIP
+ml_max_temp_m = str(round(float(df.month_df('DXT (°C)', dmp_df).max()),1))
+ml_max_temp_m_row = df.month_df('DXT (°C)', dmp_df).idxmax()
+ml_max_temp_m_year = str(int(dmp_df.loc[ml_max_temp_m_row,['year']]))
 
+logging.info("Temperatures data retrieved")
+
+# WIP
 daily_min_temp = daily_temp_df[(daily_temp_df['month'] == dt.current_month()) & (daily_temp_df['year'] == dt.current_year())]['temp_min']
 daily_max_temp = daily_temp_df[(daily_temp_df['month'] == dt.current_month()) & (daily_temp_df['year'] == dt.current_year())]['temp_max']
 daily_avg_temp = daily_temp_df[(daily_temp_df['month'] == dt.current_month()) & (daily_temp_df['year'] == dt.current_year())]['temp_avg']
@@ -295,18 +214,6 @@ def temp_plot():
   my_base64_tempData = my_base64_tempData.decode("utf-8") 
   my_base64_tempData = my_base64_tempData+'"'
   return(my_base64_tempData)
-
-# Monthly extremes (PROD ready)
-# Meteolux temp extremes current reporting period month
-ml_min_temp_m = str(round(float(df.month_df('DNT (°C)', dmp_df).min()),1))
-ml_min_temp_m_row = df.month_df('DNT (°C)', dmp_df).idxmin()
-ml_min_temp_m_year = str(int(dmp_df.loc[ml_min_temp_m_row,['year']]))
-
-ml_max_temp_m = str(round(float(df.month_df('DXT (°C)', dmp_df).max()),1))
-ml_max_temp_m_row = df.month_df('DXT (°C)', dmp_df).idxmax()
-ml_max_temp_m_year = str(int(dmp_df.loc[ml_max_temp_m_row,['year']]))
-
-logging.info("Temperatures data retrieved")
 
 #==============================================================
 #   RAIN
@@ -351,26 +258,6 @@ logging.info("Rain data retrieved")
 #==============================================================
 #   SUN
 #==============================================================
-# Sun extremes current reporting period
-sum_sun_rp = str(round(int(df.current_df('sunshine_hours_m', sun_df)),1))
-
-# Average sun current reporting period month
-avg_sun_m = str(round(df.month_df('sunshine_hours_m', sun_df).mean(),1))
-
-# Minimum sun extremes current reporting period month
-min_sun_m = str(round(df.month_df('sunshine_hours_m', sun_df).min(),1))
-min_sun_m_row = df.month_df('sunshine_hours_m', sun_df).idxmin()
-min_sun_m_year = str(int(sun_df.loc[min_sun_m_row,['year']]))
-
-# Maximum sun extremes current reporting period month
-max_sun_m = str(round(df.month_df('sunshine_hours_m', sun_df).max(),1))
-max_sun_m_row = df.month_df('sunshine_hours_m', sun_df).idxmax()
-max_sun_m_year = str(int(sun_df.loc[max_sun_m_row,['year']]))
-
-# Meteolux
-# Sun quantity
-ml_avg_sun_m = str(round(df.month_df('MINS (h)', mmp_df).mean(),1))
-
 ml_min_sun_m = str(df.month_df('MINS (h)', mmp_df).min())
 ml_min_sun_m_row = df.month_df('MINS (h)', mmp_df).idxmin()
 ml_min_sun_m_year = str(int(mmp_df.loc[ml_min_sun_m_row,['year']]))
@@ -447,8 +334,8 @@ main_html_var = {
     'ml_min_rain_days_m_year': ml_min_rain_days_m_year,
     'ml_max_rain_days_m': ml_max_rain_days_m,
     'ml_max_rain_days_m_year': ml_max_rain_days_m_year,
-    'sum_sun_rp': sum_sun_rp,
-    'ml_avg_sun_m': ml_avg_sun_m,
+    'sum_sun_rp': str(round(int(df.current_df('sunshine_hours_m', sun_df)),1)),
+    'ml_avg_sun_m': str(round(df.month_df('MINS (h)', mmp_df).mean(),1)),
     'ml_min_sun_m': ml_min_sun_m,
     'ml_min_sun_m_year': ml_min_sun_m_year,
     'ml_max_sun_m': ml_max_sun_m,
