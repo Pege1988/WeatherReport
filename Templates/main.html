@@ -11,45 +11,67 @@
 			</div>
 			<div class="chapter">	
 				<div class="chapterHeader">TEMPERATUR</div>
-				<div class="tileContent">
-					<div class="tileTitle">Dës Period</div>
-					<div class="tileMainFont">{{ avg_temp_rp }} °C</div>
-					<div class="tileSub">{{ min_temp_rp }} °C / {{ max_temp_rp }} °C</div>
-				</div>
-				<div class="tileContent">
-					<div class="tileTitle">Historesch</div>
-					<div class="tileMainFont">{{ avg_avg_temp_m }} °C</div>
-					<div class="tileSub">{{ min_temp_m }} °C ({{ min_temp_m_year }}) / {{ max_temp_m }} °C ({{ max_temp_m_year }})</div>
-				</div>
-				<div class="tileContent">
-					<div class="tileTitle">Kenndeeg</div>
-						{{ wüstentage_html }} 
-						{{ tropennächte_html }}
-						{{ heiße_tage_html }}
-						{{ sommertage_html }}
-						{{ vegetationstage_html }}
-						{{ frosttage_html }}
-						{{ eistage_html }}
+				<div class="chapterContent">
+					<div class="tileContent">
+						<div class="tileTitle">Dës Period</div>
+						<div class="tileMainFont">{{ avg_temp_rp }} °C</div>
+						<div class="tileSub">
+							<div class="tileSub min"> {{ min_temp_rp }} °C   </div>
+							<div class="tileSub divider"> / </div>
+							<div class="tileSub max">  {{ max_temp_rp }} °C</div>
+						</div>
+					</div>
+					<div class="tileContent">
+						<div class="tileTitle">Historesch</div>
+						<div class="tileMainFont">{{ avg_avg_temp_m }} °C</div>
+						<div class="tileSub">
+							<div class="tileSub min">{{ min_temp_m }} °C </div>
+							<div class="tileSub divider"> ({{ min_temp_m_year }}) / </div>
+							<div class="tileSub max">{{ max_temp_m }} °C </div>
+							<div class="tileSub divider"> ({{ max_temp_m_year }})</div>
+						</div>
+					</div>
+					<div class="tileContent">
+						<div class="tileTitle">Kenndeeg</div>
+							{{ wüstentage_html }} 
+							{{ tropennächte_html }}
+							{{ heiße_tage_html }}
+							{{ sommertage_html }}
+							{{ vegetationstage_html }}
+							{{ frosttage_html }}
+							{{ eistage_html }}
+					</div>
 				</div>
 			</div>
 			<div class="chapter">	
-				<div class="chapterHeader">REEN</div>
-				<div class="tileContent">
-					<div class="tileTitle">Dës Period</div>
-					<div class="tileMainFont">  {{ sum_rain_rp }} l/m2</div>
-					<div class="tileMainFont">  {{ rain_days_rp }} Reendeeg</div>
-				</div>
-				<div class="tileContent">
-					<div class="tileTitle">Historesch</div>
-					<div class="tileMainFont">  {{ ml_avg_rain_m }} l/m2</div>
-					<div class="tileSub">{{ ml_min_rain_m }} ({{ ml_min_rain_m_year }}) / {{ ml_max_rain_m }} ({{ ml_max_rain_m_year }})</div>
-					<br>
-					<div class="tileMainFont">  {{ ml_avg_rain_days_m }} Reendeeg</div>
-					<div class="tileSub">{{ ml_min_rain_days_m }} ({{ ml_min_rain_days_m_year }}) / {{ ml_max_rain_days_m }} ({{ ml_max_rain_days_m_year }})</div>
+				<div class="chapterHeader">REEN</div>				
+				<div class="chapterContent">
+					<div class="tileContent">
+						<div class="tileTitle">Dës Period</div>
+						<div class="tileMainFont">  {{ sum_rain_rp }} l/m2</div>
+						<div class="tileMainFont">  {{ rain_days_rp }} Reendeeg</div>
+					</div>
+					<div class="tileContent">
+						<div class="tileTitle">Historesch</div>
+						<div class="tileMainFont">  {{ ml_avg_rain_m }} l/m2</div>
+						<div class="tileSub">
+							<div class="tileSub min">{{ ml_min_rain_m }} </div>
+							<div class="tileSub divider"> ({{ ml_min_rain_m_year }}) / </div>
+							<div class="tileSub max">{{ ml_max_rain_m }} </div>
+						</div>
+						<div class="tileMainFont">  {{ ml_avg_rain_days_m }} Reendeeg</div>
+						<div class="tileSub">
+							<div class="tileSub min">{{ ml_min_rain_days_m }} </div>
+							<div class="tileSub divider"> ({{ ml_min_rain_days_m_year }}) / </div>
+							<div class="tileSub max">{{ ml_max_rain_days_m }} </div>
+							<div class="tileSub divider"> ({{ ml_max_rain_days_m_year }})</div>
+						</div>
+					</div>
 				</div>
 			</div>
 			<div class="chapter">	
 				<div class="chapterHeader">SONN</div>
+				<div class="chapterContent">
 					<div class="tileContent">
 						<div class="tileTitle">Dës Period</div>
 						<div class="tileMainFont">{{ sum_sun_rp }} Stonnen</div>
@@ -57,51 +79,60 @@
 					<div class="tileContent">
 						<div class="tileTitle">Historesch</div>
 						<div class="tileMainFont">  {{ ml_avg_sun_m }} Stonnen</div>
-						<div class="tileSub">{{ ml_min_sun_m }} ({{ ml_min_sun_m_year }}) / {{ ml_max_sun_m }} ({{ ml_max_sun_m_year }})</div>
+						<div class="tileSub">
+							<div class="tileSub min">{{ ml_min_sun_m }} </div>
+							<div class="tileSub divider"> ({{ ml_min_sun_m_year }}) / </div>
+							<div class="tileSub max">{{ ml_max_sun_m }} </div>
+							<div class="tileSub divider"> ({{ ml_max_sun_m_year }})</div>
+						</div>
 					</div>
-				  <br>
+				</div>
 			</div>
 			<div class="chapter">	
 				<div class="chapterHeader">WAND</div>
+				<div class="chapterContent">
 					<div class="italic">Geplangt</div>
 					<br>
+				</div>
 			</div>
 			<div class="chapter">	
 				<div class="chapterHeader">ERKLÄRUNGEN</div>
-				<table class="extremeTempTable">
-					<tr>
-						<th>Kenndaag</th>
-						<th>Erkläerung</th>
-					</tr>
-					<tr>
-						<td>Wüstendag</td>
-						<td>Maximaltemperatur mind. 35 °C</td>
-					</tr>
-					<tr>
-						<td>Tropennuecht</td>
-						<td>Minimaltemperatur mind. 20 °C</td>
-					</tr>
-					<tr>
-						<td>Waarmen Daag</td>
-						<td>Maximaltemperatur mind. 30 °C</td>
-					</tr>
-					<tr>
-						<td>Summerdaag</td>
-						<td>Maximaltemperatur mind. 25 °C</td>
-					</tr>
-					<tr>
-						<td>Vegetatiounsdeeg</td>
-						<td>Mediantemperatur mind. 5 °C</td>
-					</tr>
-					<tr>
-						<td>Frascht</td>
-						<td>Mindesttemperatur ënnert 0 °C</td>
-					</tr>
-					<tr>
-						<td>Äisdaag</td>
-						<td>Maximaltemparatur ënnert 0 °C</td>
-					</tr>
-				</table>
+				<div class="chapterContent">
+					<table class="extremeTempTable">
+						<tr>
+							<th>Kenndaag</th>
+							<th>Erkläerung</th>
+						</tr>
+						<tr>
+							<td>Wüstendag</td>
+							<td>Maximaltemperatur mind. 35 °C</td>
+						</tr>
+						<tr>
+							<td>Tropennuecht</td>
+							<td>Minimaltemperatur mind. 20 °C</td>
+						</tr>
+						<tr>
+							<td>Waarmen Daag</td>
+							<td>Maximaltemperatur mind. 30 °C</td>
+						</tr>
+						<tr>
+							<td>Summerdaag</td>
+							<td>Maximaltemperatur mind. 25 °C</td>
+						</tr>
+						<tr>
+							<td>Vegetatiounsdeeg</td>
+							<td>Mediantemperatur mind. 5 °C</td>
+						</tr>
+						<tr>
+							<td>Frascht</td>
+							<td>Mindesttemperatur ënnert 0 °C</td>
+						</tr>
+						<tr>
+							<td>Äisdaag</td>
+							<td>Maximaltemparatur ënnert 0 °C</td>
+						</tr>
+					</table>
+				</div>
 			</div>
 			<div class="chapter">	
 				<div class="disclaimer">
